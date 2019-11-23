@@ -1,0 +1,44 @@
+#This code create  a customer classifier employing IBM watson models and api to train and detect doors in pictures.
+# It can be employeed for several different purposes depending on your needs
+
+#first install IBM Watson package on python
+!pip install --upgrade ibm-watson
+
+#place your API key which you can get after joining watson
+apikey = 'xyz'
+
+#now create watson instance using watson package
+from ibm_watson import VisualRecognitionV3
+from ibm_cloud_sdk_core.authenticators import IAMAuthenticator
+auth = IAMAuthenticator(apikey)
+
+#this will allow calls to our watson api
+ibmapi = VisualRecognitionV3('2018-03-19', authenticator=auth)
+                             
+#Using urllib.request for fetching files from cloud, users can skip this step if they have data in their drives 
+import urllib.request
+
+#any data from any cloud, DB or drives shall be in zip format
+urllib.request.urlretrieve("http://xyz.zip", "doors.zip")
+
+#now train the classifier on my zip folder using create_classifier method of watson api
+import json
+with open('doors', 'rb') as door:
+          response = ibmapi.create_classifier(name="doors_classifier",
+                                        positive_examples={'doors': door}) # for a much enhance version we can provide negative examples as well
+print(json.dumps(response.get_result(), indent=2))
+      
+#take the classifier id
+cl_id = response.get_result()["classifier_id"]      
+      
+#check status of classifier if its ready or in traiing mode(this may take some time)
+ibmapi.get_classifier(classifier_id=cl_id, verbose=True).get_result()['status']
+
+#when status is ready, check your classifier
+ibmapi.list_classifiers(verbose=True).get_result()
+
+#create a method to test your model using classify from Watson.
+def getdf_visrec(url, classifier_ids, apikey = apikey):
+    json_result = visrec.classify(url=url,threshold='0.6',classifier_ids=cl_ids).get_result()
+    
+    json_classes = json_result['images'][0]['classifiers'][0]['classes']
